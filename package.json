@@ -1,0 +1,26 @@
+{
+  "name": "@brick-game/cli",
+  "version": "0.1.0",
+  "description": "CLI to scaffold Brick Game projects",
+  "main": "dist/index.js",
+  "bin": {
+    "brick-game": "bin/brick-cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@types/inquirer": "^8.2.12",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^8.2.7"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}
