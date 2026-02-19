@@ -1,10 +1,10 @@
 {
-  "name": "@brick-game/cli",
+  "name": "brick-engine-cli",
   "version": "0.1.0",
   "description": "CLI to scaffold Brick Game projects",
   "main": "dist/index.js",
   "bin": {
-    "brick-game": "bin/brick-cli.js"
+    "brick-engine-cli": "bin/brick-cli.js"
   },
   "scripts": {
     "build": "tsc",
