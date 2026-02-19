@@ -76,9 +76,10 @@ export async function initCommand(projectName: string) {
         ...pkg.scripts,
         lint: 'eslint "src/**/*.ts"',
       };
-      // Force safe ajv version to resolve audit warnings
+      // Force safe dependency versions to resolve audit warnings
       pkg.overrides = {
         ajv: "^8.18.0",
+        minimatch: "^10.2.1",
       };
     }
 
