@@ -1,10 +1,14 @@
-const path = require('path');
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
+import path from 'path';
+import webpack from 'webpack';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
+import { createRequire } from 'module';
 
-module.exports = (env = {}, argv) => {
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+export default (env = {}, argv) => {
     const isProduction = argv.mode === 'production';
     const bundleMode = env.bundle || 'bundle'; // 'standalone' or 'bundle'
 
