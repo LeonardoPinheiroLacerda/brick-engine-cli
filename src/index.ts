@@ -4,13 +4,13 @@ import chalk from "chalk";
 
 export function run() {
   program
-    .name("brick-game")
-    .description("CLI to scaffold Brick Game projects")
-    .version("0.1.0");
+    .name("brick-engine-cli")
+    .description("CLI to scaffold Brick Engine projects")
+    .version("1.0.0");
 
   program
     .command("init <name>")
-    .description("Initialize a new Brick Game project")
+    .description("Initialize a new Brick Engine project")
     .action(async (name) => {
       try {
         await initCommand(name);
