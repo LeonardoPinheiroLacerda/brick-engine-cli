@@ -22,11 +22,11 @@ export default (env = {}, argv) => {
         // In 'bundle' mode, we bundle ONLY the game class
         entry: bundleMode === 'bundle' ? myGamePath : path.resolve(engineRoot, 'src/main.ts'),
         output: {
-            filename: bundleMode === 'bundle' ? 'game.bundle.js' : 'my-game.bundle.js',
+            filename: 'game.bundle.js',
             path: path.resolve(__dirname, 'dist'),
-            clean: bundleMode !== 'bundle', // Don't clean if we are just adding a bundle? Actually clean is fine if we run it separately.
+            clean: true,
         },
-        devtool: isProduction ? 'source-map' : 'eval-source-map',
+        devtool: isProduction ? false : 'source-map',
         module: {
             rules: [
                 {

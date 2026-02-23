@@ -1,15 +1,38 @@
-import { Game, FontSize, ControlKey, ControlEventType, Sound, FontAlign, FontVerticalAlign } from 'brick-engine-js';
+import { Serializable, Game, FontSize, ControlKey, ControlEventType, Sound, FontAlign, FontVerticalAlign, Piece, Color, Cell } from 'brick-engine-js';
 
 export default class MyGame extends Game {
+    y = 0;
+    x = 5;
+
     /**
      * Called once after the engine and its modules are fully initialized.
      * Ideal for setting initial state, text sizes, and subscribing to controls.
      */
     setupGame(): void {
+        const { grid, control, sound } = this.modules;
+
         // Example: Subscriber to ACTION button
-        this.modules.control.subscribe(ControlKey.ACTION, ControlEventType.PRESSED, () => {
-            console.log('Action pressed!');
-            this.modules.sound.play(Sound.ACTION_1);
+        control.subscribe(ControlKey.ACTION, ControlEventType.PRESSED, () => {
+            sound.play(Sound.ACTION_1);
+            grid.stampCell({
+                coordinate: { x: this.x, y: this.y },
+                color: Color.CYAN,
+                value: 1,
+            });
+            this.modules.time.decrementTickInterval(this.y);
+            this.y++;
+        });
+
+        this.modules.session.register({
+            serialId: 'coords',
+            deserialize: data => {
+                const { x, y } = JSON.parse(data);
+                this.x = x;
+                this.y = y;
+            },
+            serialize: () => {
+                return JSON.stringify({ x: this.x, y: this.y });
+            },
         });
     }
 
@@ -19,7 +42,14 @@ export default class MyGame extends Game {
      * Logic here ONLY runs when the game is in the PLAYING state.
      */
     update(deltaTime: number): void {
-        // Move players, check collisions, etc.
+        const actualCoordinate = { x: this.x, y: this.y };
+
+        if (!this.modules.grid.isValidCoordinate(actualCoordinate)) {
+            alert(this.y);
+            this.modules.state.triggerGameOver();
+        }
+
+        this.modules.score.increaseScore(1);
     }
 
     /**
@@ -40,14 +70,6 @@ export default class MyGame extends Game {
 
         text.setTextSize(FontSize.MEDIUM);
         text.textOnDisplay('Playing', { x: 0.5, y: 0.8 });
-    }
-
-    /**
-     * returns a unique key for LocalStorage.
-     * Prevents data collisions between different games on the same domain.
-     */
-    getPersistenceKey(): string {
-        return 'my-awesome-game-v1';
     }
 
     /**
@@ -76,6 +98,13 @@ export default class MyGame extends Game {
      */
     drawGameOverScreen(): void {
         this.modules.text.textOnDisplay('GAME OVER', { x: 0.5, y: 0.5 });
+
+        this.modules.text.setTextSize(FontSize.MEDIUM);
+        this.modules.text.textOnDisplay('PRESS START', { x: 0.5, y: 0.8 });
+    }
+
+    getGameId() {
+        return 'tetris';
     }
 }
 
