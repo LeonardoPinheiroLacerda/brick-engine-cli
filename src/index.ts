@@ -1,5 +1,6 @@
 import { program } from "commander";
 import { initCommand } from "./commands/init";
+import { publishCommand } from "./commands/publish";
 import chalk from "chalk";
 
 export function run() {
@@ -14,6 +15,20 @@ export function run() {
     .action(async (name) => {
       try {
         await initCommand(name);
+      } catch (error: any) {
+        console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  program
+    .command("publish")
+    .description("Publish your game to the Brick Engine Artifactory")
+    .option("-u, --url <url>", "Supabase URL")
+    .option("-k, --key <key>", "Supabase Anon Key")
+    .action(async (options) => {
+      try {
+        await publishCommand(options);
       } catch (error: any) {
         console.error(chalk.red(`Error: ${error.message}`));
         process.exit(1);

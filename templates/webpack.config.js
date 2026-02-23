@@ -42,7 +42,7 @@ export default (env = {}, argv) => {
         },
         resolve: {
             extensions: ['.tsx', '.ts', '.js'],
-            symlinks: false,
+            symlinks: true,
             alias: {
                 '@client-game': myGamePath,
                 'brick-engine-js': path.resolve(engineRoot, 'dist/brick-engine.js'),
