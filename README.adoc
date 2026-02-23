@@ -48,6 +48,17 @@ During the process, you will be asked about:
 * Whether you want to use **ESLint** to ensure code quality.
 * Whether you want to use **Prettier** for automatic formatting.
 
+=== `publish`
+
+Publishes your game to the Brick Engine platform.
+
+Before uploading, this command automatically builds the project to generate an optimized bundle. Once uploaded, the game enters a review process before becoming publicly available.
+
+During the execution, you will be prompted for:
+* **Developer email**: Used to send notifications regarding the game's review status (approval or rejection).
+
+Upon successful submission, the CLI outputs the Game ID, Version, Bundle URL, and the current status of the publication. The command also safely rejects duplicate publication attempts for the same version.
+
 == Template Scripts
 
 Generated projects come with the following scripts in `package.json`:
