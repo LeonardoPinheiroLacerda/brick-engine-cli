@@ -25,11 +25,6 @@ export async function publishCommand(options: { url?: string; key?: string }) {
 
   // The bundle path will be checked after the build step now
 
-  const pkg = await fs.readJson(pkgPath);
-  const gameId = `${pkg.name}-${pkg.version}`;
-  const gameName = pkg.name;
-  const version = pkg.version;
-
   // Resolve Supabase URL and Key
   let supabaseUrl = options.url || process.env.SUPABASE_URL;
   let supabaseAnonKey = options.key || process.env.SUPABASE_ANON_KEY;
@@ -55,23 +50,32 @@ export async function publishCommand(options: { url?: string; key?: string }) {
     });
   }
 
-  if (!pkg.author) {
-    prompts.push({
-      type: "input",
-      name: "developerEmail",
-      message:
-        "Enter your developer email (to receive approval/rejection reasons):",
-    });
-  }
+  prompts.push({
+    type: "input",
+    name: "gameName",
+    message: "Enter your game name:",
+  });
+
+  prompts.push({
+    type: "input",
+    name: "developerEmail",
+    message:
+      "Enter your developer email (to receive approval/rejection reasons):",
+  });
+
+  const pkg = await fs.readJson(pkgPath);
+  const gameId = pkg.name;
+  const version = pkg.version;
 
   prompts.push({
     type: "confirm",
     name: "confirmPublish",
-    message: `Ready to publish ${chalk.cyan(gameName)} v${version}?`,
+    message: `Ready to publish ${chalk.cyan(gameId)} v${version}?`,
     default: true,
   });
 
   const answers = await inquirer.prompt(prompts);
+  const gameName = answers.gameName;
 
   if (!answers.confirmPublish) {
     console.log(chalk.yellow("\nPublishing cancelled."));
@@ -161,6 +165,7 @@ export async function publishCommand(options: { url?: string; key?: string }) {
       console.log(chalk.gray("───────────────────────────────────"));
       console.log(`  Request ID: ${chalk.cyan(result.request.id)}`);
       console.log(`  Game ID: ${chalk.cyan(gameId)}`);
+      console.log(`  Game Name: ${chalk.cyan(gameName)}`);
       console.log(`  Version: ${chalk.cyan(version)}`);
       console.log(`  Bundle: ${chalk.cyan(result.request.bundle_url)}`);
       console.log(`  Status: ${chalk.yellow("Under Review")}`);
