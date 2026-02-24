@@ -52,6 +52,7 @@ export default (env = {}, argv) => {
         },
         externals: {
             p5: 'p5',
+            'brick-engine-js': 'BrickEngine',
         },
         plugins: [
             new webpack.DefinePlugin({
