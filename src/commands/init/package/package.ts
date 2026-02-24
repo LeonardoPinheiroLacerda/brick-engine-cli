@@ -1,4 +1,5 @@
 import { Answers } from "../types";
+import dependencies from "./dependencies";
 import devDependencies from "./devDependencies";
 import scripts from "./scripts";
 
@@ -16,6 +17,15 @@ export default function packageJson(name: string, answers: Answers) {
       (acc, s) => {
         if (s.shouldInstall) {
           acc[s.name] = s.command;
+        }
+        return acc;
+      },
+      {} as Record<string, string>,
+    ),
+    dependencies: dependencies(answers).reduce(
+      (acc, d) => {
+        if (d.shouldInstall) {
+          acc[d.name] = d.version;
         }
         return acc;
       },

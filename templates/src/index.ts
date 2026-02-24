@@ -1,4 +1,4 @@
-import { Serializable, Game, FontSize, ControlKey, ControlEventType, Sound, FontAlign, FontVerticalAlign, Piece, Color, Cell } from 'brick-engine-js';
+import { Game, FontSize, ControlKey, ControlEventType, Sound, FontAlign, FontVerticalAlign, Color } from 'brick-engine-js';
 
 export default class MyGame extends Game {
     y = 0;
@@ -45,7 +45,6 @@ export default class MyGame extends Game {
         const actualCoordinate = { x: this.x, y: this.y };
 
         if (!this.modules.grid.isValidCoordinate(actualCoordinate)) {
-            alert(this.y);
             this.modules.state.triggerGameOver();
         }
 
@@ -60,16 +59,10 @@ export default class MyGame extends Game {
     render(): void {
         const { text } = this.modules;
 
-        text.setTextSize(FontSize.MEDIUM);
-        text.setTextAlign(FontAlign.CENTER, FontVerticalAlign.CENTER);
-        text.textOnDisplay('MY GAME', { x: 0.5, y: 0.2 });
-
-        text.setTextSize(FontSize.SMALL);
-        text.textOnDisplay('running on', { x: 0.5, y: 0.48 });
-        text.textOnDisplay('render', { x: 0.5, y: 0.55 });
-
-        text.setTextSize(FontSize.MEDIUM);
-        text.textOnDisplay('Playing', { x: 0.5, y: 0.8 });
+        text.setTextSize(FontSize.EXTRA_SMALL);
+        text.setTextAlign(FontAlign.LEFT, FontVerticalAlign.TOP);
+        text.textOnDisplay('press', { x: 0.05, y: 0.05 });
+        text.textOnDisplay('action', { x: 0.05, y: 0.1 });
     }
 
     /**
@@ -97,6 +90,8 @@ export default class MyGame extends Game {
      * Usually displays the game over message and "Press START to restart" instructions, and the final score.
      */
     drawGameOverScreen(): void {
+        this.modules.text.setTextAlign(FontAlign.CENTER, FontVerticalAlign.CENTER);
+
         this.modules.text.textOnDisplay('GAME OVER', { x: 0.5, y: 0.5 });
 
         this.modules.text.setTextSize(FontSize.MEDIUM);
@@ -107,9 +102,3 @@ export default class MyGame extends Game {
         return 'tetris';
     }
 }
-
-// CRITICAL: For "Bundle Mode" to work, the game must attach itself to the window
-// after is published.
-// If it's being compiled as a standalone bundle to be loaded dynamically.
-// eslint-disable-next-line
-(window as any).BrickEngineGame = MyGame;

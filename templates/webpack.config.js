@@ -1,4 +1,5 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
@@ -6,7 +7,8 @@ import CopyWebpackPlugin from 'copy-webpack-plugin';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default (env = {}, argv) => {
     const isProduction = argv.mode === 'production';
@@ -14,13 +16,14 @@ export default (env = {}, argv) => {
 
     // Dynamically find the engine root using require.resolve
     const engineRoot = path.dirname(require.resolve('brick-engine-js/package.json'));
-    // Path to the game class in THIS project
-    const myGamePath = path.resolve(__dirname, 'src/index.ts');
 
     const config = {
         mode: isProduction ? 'production' : 'development',
         // In 'bundle' mode, we bundle ONLY the game class
-        entry: bundleMode === 'bundle' ? myGamePath : path.resolve(engineRoot, 'src/main.ts'),
+        // In 'standalone' mode, we load the engine with the user's game
+        entry: {
+            app: path.resolve(__dirname, 'src/bootstrap.ts'),
+        },
         output: {
             filename: 'game.bundle.js',
             path: path.resolve(__dirname, 'dist'),
@@ -32,7 +35,7 @@ export default (env = {}, argv) => {
                 {
                     test: /\.tsx?$/,
                     use: 'ts-loader',
-                    exclude: /node_modules/,
+                    exclude: /node_modules\/(?!brick-engine-js)/,
                 },
                 {
                     test: /\.css$/i,
@@ -44,8 +47,7 @@ export default (env = {}, argv) => {
             extensions: ['.tsx', '.ts', '.js'],
             symlinks: true,
             alias: {
-                '@client-game': myGamePath,
-                'brick-engine-js': path.resolve(engineRoot, 'dist/brick-engine.js'),
+                'brick-engine-js': path.resolve(engineRoot, 'dist/game.bundle.js'),
             },
         },
         externals: {
@@ -54,6 +56,8 @@ export default (env = {}, argv) => {
         plugins: [
             new webpack.DefinePlugin({
                 'process.env.APP_MODE': JSON.stringify('client'),
+                'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || ''),
+                'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || ''),
             }),
             new MiniCssExtractPlugin({
                 filename: 'style.css',
@@ -71,16 +75,20 @@ export default (env = {}, argv) => {
         // Plugins only for standalone mode
         config.plugins.push(
             new HtmlWebpackPlugin({
-                template: path.resolve(engineRoot, 'public/index.html'),
-                favicon: path.resolve(engineRoot, 'public/favicon.ico'),
-                inject: 'body',
+                template: path.resolve(engineRoot, 'dist/index.html'),
+                favicon: path.resolve(engineRoot, 'dist/favicon.ico'),
+                inject: false,
             }),
             new CopyWebpackPlugin({
                 patterns: [
-                    { from: path.resolve(engineRoot, 'node_modules/p5/lib/p5.min.js'), to: 'vendor/p5.min.js' },
-                    { from: path.resolve(engineRoot, 'public/images'), to: 'images' },
-                    { from: path.resolve(engineRoot, 'public/sounds'), to: 'sounds' },
-                    { from: path.resolve(engineRoot, 'public/favicon.ico'), to: './' },
+                    {
+                        from: path.resolve(engineRoot, 'dist/vendor/p5.min.js'),
+                        to: 'vendor/p5.min.js',
+                    },
+                    { from: path.resolve(engineRoot, 'dist/css'), to: 'css' },
+                    { from: path.resolve(engineRoot, 'dist/images'), to: 'images' },
+                    { from: path.resolve(engineRoot, 'dist/sounds'), to: 'sounds' },
+                    { from: path.resolve(engineRoot, 'dist/fonts'), to: 'fonts' },
                 ],
             }),
         );

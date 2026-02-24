@@ -1,0 +1,75 @@
+name: Publish and Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # ensures history is available for tag and push
+          token: ${{ secrets.GITHUB_TOKEN }} # Needed to push back to the repository
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org/"
+
+      - name: Validate NPM Token
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Inject Secrets
+        run: |
+          sed -i "s|%%SUPABASE_URL%%|${{ secrets.SUPABASE_URL }}|g" src/config/constants.ts
+          sed -i "s|%%SUPABASE_ANON_KEY%%|${{ secrets.SUPABASE_ANON_KEY }}|g" src/config/constants.ts
+
+      - name: Build project
+        run: npm run build
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'LeonardoPinheiroLacerda'
+          git config --global user.email 'leon.lacerda2015@gmail.com'
+
+      - name: Bump Version
+        run: |
+          npm version patch --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to v${VERSION} [skip ci]"
+          git tag -a "v${VERSION}" -m "Version ${VERSION}"
+
+      - name: Push adjustments
+        run: |
+          git push origin HEAD:${{ github.ref }}
+          git push origin --tags
+
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ env.VERSION }}" \
+            --title "Release v${{ env.VERSION }}" \
+            --generate-notes

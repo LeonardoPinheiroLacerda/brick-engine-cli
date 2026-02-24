@@ -3,6 +3,7 @@ import path from "path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { execSync } from "child_process";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "../../config/constants";
 
 export async function publishCommand(options: { url?: string; key?: string }) {
   const currentDir = process.cwd();
@@ -27,7 +28,18 @@ export async function publishCommand(options: { url?: string; key?: string }) {
 
   // Resolve Supabase URL and Key
   let supabaseUrl = options.url || process.env.SUPABASE_URL;
+  if (!supabaseUrl && SUPABASE_URL && !SUPABASE_URL.startsWith("%%")) {
+    supabaseUrl = SUPABASE_URL;
+  }
+
   let supabaseAnonKey = options.key || process.env.SUPABASE_ANON_KEY;
+  if (
+    !supabaseAnonKey &&
+    SUPABASE_ANON_KEY &&
+    !SUPABASE_ANON_KEY.startsWith("%%")
+  ) {
+    supabaseAnonKey = SUPABASE_ANON_KEY;
+  }
 
   const prompts = [];
   if (!supabaseUrl) {
