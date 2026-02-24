@@ -35,9 +35,10 @@ jobs:
         run: npm ci
 
       - name: Inject Secrets
-        run: |
-          sed -i "s|%%SUPABASE_URL%%|${{ secrets.SUPABASE_URL }}|g" src/config/constants.ts
-          sed -i "s|%%SUPABASE_ANON_KEY%%|${{ secrets.SUPABASE_ANON_KEY }}|g" src/config/constants.ts
+        run: node scripts/inject-secrets.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
       - name: Build project
         run: npm run build
