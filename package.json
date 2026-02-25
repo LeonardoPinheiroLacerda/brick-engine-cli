@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@types/inquirer": "^8.2.12",
-    "brick-engine-js": "^1.0.19",
+    "brick-engine-js": "^1.0.20",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "dotenv": "^17.3.1",
