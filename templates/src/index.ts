@@ -12,7 +12,7 @@ export default class MyGame extends Game {
         const { grid, control, sound } = this.modules;
 
         // Example: Subscriber to ACTION button
-        control.subscribe(ControlKey.ACTION, ControlEventType.PRESSED, () => {
+        control.subscribeForPlayingScreen(ControlKey.ACTION, ControlEventType.PRESSED, () => {
             sound.play(Sound.ACTION_1);
             grid.stampCell({
                 coordinate: { x: this.x, y: this.y },
@@ -96,9 +96,5 @@ export default class MyGame extends Game {
 
         this.modules.text.setTextSize(FontSize.MEDIUM);
         this.modules.text.textOnDisplay('PRESS START', { x: 0.5, y: 0.8 });
-    }
-
-    getGameId() {
-        return 'tetris';
     }
 }
