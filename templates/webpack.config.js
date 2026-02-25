@@ -1,6 +1,5 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
@@ -22,12 +21,19 @@ export default (env = {}, argv) => {
         // In 'bundle' mode, we bundle ONLY the game class
         // In 'standalone' mode, we load the engine with the user's game
         entry: {
-            app: path.resolve(__dirname, 'src/bootstrap.ts'),
+            app: bundleMode === 'bundle' ? path.resolve(__dirname, 'src/index.ts') : path.resolve(__dirname, 'src/bootstrap.ts'),
         },
         output: {
             filename: 'game.bundle.js',
             path: path.resolve(__dirname, 'dist'),
             clean: true,
+            ...(bundleMode === 'bundle'
+                ? {
+                      library: 'BrickEngineGame',
+                      libraryTarget: 'window',
+                      libraryExport: 'default',
+                  }
+                : {}),
         },
         devtool: isProduction ? false : 'source-map',
         module: {
