@@ -55,11 +55,6 @@ export default (env = {}, argv) => {
             'brick-engine-js': 'BrickEngine',
         },
         plugins: [
-            new webpack.DefinePlugin({
-                'process.env.APP_MODE': JSON.stringify('client'),
-                'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || ''),
-                'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || ''),
-            }),
             new MiniCssExtractPlugin({
                 filename: 'style.css',
             }),
@@ -73,6 +68,8 @@ export default (env = {}, argv) => {
     };
 
     if (bundleMode === 'standalone') {
+        delete config.externals['brick-engine-js'];
+
         // Plugins only for standalone mode
         config.plugins.push(
             new HtmlWebpackPlugin({
