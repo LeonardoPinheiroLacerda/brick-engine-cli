@@ -5,12 +5,10 @@ import chalk from "chalk";
 import { readFileSync } from "fs";
 
 export function run() {
-  const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
-
   program
     .name("brick-engine-cli")
     .description("CLI to scaffold Brick Engine projects")
-    .version(pkg.version);
+    .version("1.0.8");
 
   program
     .command("init <name>")
