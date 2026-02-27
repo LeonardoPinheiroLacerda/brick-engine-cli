@@ -1,6 +1,6 @@
 {
   "name": "brick-engine-cli",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "CLI to scaffold Brick Game projects",
   "main": "dist/index.js",
   "bin": {
