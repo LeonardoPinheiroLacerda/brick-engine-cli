@@ -3,12 +3,17 @@ import { initCommand } from "./commands/init";
 import { publishCommand } from "./commands/publish";
 import chalk from "chalk";
 import { readFileSync } from "fs";
+import path from "path";
 
 export function run() {
+  const pkg = JSON.parse(
+    readFileSync(path.join(__dirname, "../package.json"), "utf-8"),
+  );
+
   program
     .name("brick-engine-cli")
     .description("CLI to scaffold Brick Engine projects")
-    .version("1.0.8");
+    .version(pkg.version);
 
   program
     .command("init <name>")
