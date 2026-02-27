@@ -1,16 +1,29 @@
-import { Game, FontSize, ControlKey, ControlEventType, Sound, FontAlign, FontVerticalAlign, Color, Coordinate, StateProperty } from 'brick-engine-js';
+import { Game, FontSize, ControlKey, ControlEventType, Sound, FontAlign, FontVerticalAlign, Color, Coordinate, Cell } from 'brick-engine-js';
 
 export default class MyGame extends Game {
-    private playerX = 5;
+    private initialPlayerCell: Cell = {
+        value: 1,
+        color: Color.CYAN,
+        coordinate: {
+            x: 5,
+            y: 17,
+        },
+    };
+    private initialTickInterval = 200;
+
+    private player: Cell = this.initialPlayerCell;
     private enemies: Coordinate[] = [];
     private spawnRate = 5; // Ticks between spawns
-    private initTickInterval = 200;
 
     /**
      * Called once after the engine and its modules are fully initialized.
      */
     setupGame(): void {
-        const { control, session } = this.modules;
+        const { control, session, grid, score, time } = this.modules;
+
+        // Reset game local state when starting/restarting.
+        this.player = this.initialPlayerCell;
+        time.setTickInterval(this.initialTickInterval);
 
         // Register how game data should be serialized and deserialized for the session
         session.register({
@@ -19,41 +32,34 @@ export default class MyGame extends Game {
             // Recieves from LocalStorage and restore the game state
             deserialize: (data: string) => {
                 if (!data) return;
-                const { playerX, enemies } = JSON.parse(data);
-                this.playerX = playerX;
+                const { player, enemies } = JSON.parse(data);
+                this.player = player;
                 this.enemies = enemies;
             },
             // Prepare data to be saved to LocalStorage
             serialize: () => {
                 return JSON.stringify({
-                    playerX: this.playerX,
+                    player: this.player,
                     enemies: this.enemies,
                 });
             },
         });
 
-        this.onStart();
-
         // Move Left
         control.subscribeForPlayingScreen(ControlKey.LEFT, ControlEventType.PRESSED, () => {
-            this.movePlayer(-1);
+            const newCell = grid.moveCellLeft(this.player);
+            if (newCell) {
+                this.player = newCell;
+            }
         });
 
         // Move Right
         control.subscribeForPlayingScreen(ControlKey.RIGHT, ControlEventType.PRESSED, () => {
-            this.movePlayer(1);
+            const newCell = grid.moveCellRight(this.player);
+            if (newCell) {
+                this.player = newCell;
+            }
         });
-    }
-
-    private movePlayer(dx: number): void {
-        const { grid, sound } = this.modules;
-
-        const newX = this.playerX + dx;
-
-        if (grid.isCoordinateValid({ x: newX, y: grid.bottomRow })) {
-            this.playerX = newX;
-            sound.play(Sound.KEY_PRESS);
-        }
     }
 
     /**
@@ -72,8 +78,7 @@ export default class MyGame extends Game {
         }
 
         // 3. Check collisions
-        const playerY = grid.bottomRow;
-        const collision = this.enemies.find(enemy => enemy.x === this.playerX && enemy.y === playerY);
+        const collision = this.enemies.find(enemy => enemy.x === this.player.coordinate.x && enemy.y === this.player.coordinate.y);
 
         if (collision) {
             sound.play(Sound.EXPLOSION);
@@ -85,30 +90,33 @@ export default class MyGame extends Game {
         grid.resetGrid();
 
         // Draw Player
-        grid.stampCell({
-            coordinate: { x: this.playerX, y: playerY },
-            color: Color.CYAN,
-            value: 1,
-        });
+        // Cell is a class that represents a single cell in the grid
+        grid.stampCell(this.player);
 
         // Draw Enemies
-        this.enemies.forEach(enemy => {
-            grid.stampCell({
-                coordinate: enemy,
-                color: Color.RED,
-                value: 2,
-            });
-        });
+        // Piece is a class that represents a collection of cells in the grid
+        grid.stampPiece(
+            this.enemies.map(coordinate => {
+                return {
+                    coordinate,
+                    color: Color.RED,
+                    value: 2,
+                };
+            }),
+        );
 
         // 5. Increase score and difficulty
         score.increaseScore(1);
 
-        // Increase speed every 50 points
+        // Increase speed every 50 points, limit to 10 levels
         if (score.score > 0 && score.score % 50 === 0 && score.level < score.maxLevel) {
-            time.setTickInterval(this.initTickInterval - 15 * score.level);
+            // Set tick interval to 200ms minus 15ms per level
+            time.setTickInterval(this.initialTickInterval - 15 * score.level);
 
+            // Increase level
             score.increaseLevel(1);
 
+            // Play sound based on level
             if (score.level < 6) {
                 sound.play(Sound.SCORE_2);
             } else {
@@ -154,16 +162,5 @@ export default class MyGame extends Game {
 
         text.setTextSize(FontSize.MEDIUM);
         text.textOnDisplay('PRESS START', { x: 0.5, y: 0.8 });
-    }
-
-    /**
-     * Reset game local state when starting/restarting.
-     */
-    onStart(): void {
-        const { score, time } = this.modules;
-
-        this.playerX = 5;
-        this.enemies = [];
-        time.setTickInterval(this.initTickInterval - 15 * score.level);
     }
 }
