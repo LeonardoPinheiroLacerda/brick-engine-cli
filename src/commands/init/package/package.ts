@@ -43,6 +43,7 @@ export default function packageJson(name: string, answers: Answers) {
     overrides: {
       ajv: "^8.18.0",
       minimatch: "^10.2.1",
+      "serialize-javascript": "^7.0.3",
     },
   };
 }

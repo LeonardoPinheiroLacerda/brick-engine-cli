@@ -1,4 +1,14 @@
-import { Game, FontSize, ControlKey, ControlEventType, Sound, FontAlign, FontVerticalAlign, Color, Coordinate, Cell } from 'brick-engine-js';
+import {
+    Game,
+    FontSize,
+    ControlKey,
+    ControlEventType,
+    Sound,
+    FontAlign,
+    FontVerticalAlign,
+    Color,
+    Cell,
+} from 'brick-engine-js';
 
 export default class MyGame extends Game {
     private initialPlayerCell: Cell = {
@@ -12,7 +22,11 @@ export default class MyGame extends Game {
     private initialTickInterval = 200;
 
     private player: Cell = this.initialPlayerCell;
-    private enemies: Coordinate[] = [];
+
+    private enemies: Cell[] = [];
+    private enemyColor = Color.RED;
+    private enemyValue = 2;
+
     private spawnRate = 5; // Ticks between spawns
 
     /**
@@ -46,20 +60,22 @@ export default class MyGame extends Game {
         });
 
         // Move Left
-        control.subscribeForPlayingScreen(ControlKey.LEFT, ControlEventType.PRESSED, () => {
-            const newCell = grid.moveCellLeft(this.player);
-            if (newCell) {
-                this.player = newCell;
-            }
-        });
+        control.subscribeForPlayingScreen(
+            ControlKey.LEFT,
+            ControlEventType.PRESSED,
+            () => {
+                this.player = grid.moveCellLeft(this.player);
+            },
+        );
 
         // Move Right
-        control.subscribeForPlayingScreen(ControlKey.RIGHT, ControlEventType.PRESSED, () => {
-            const newCell = grid.moveCellRight(this.player);
-            if (newCell) {
-                this.player = newCell;
-            }
-        });
+        control.subscribeForPlayingScreen(
+            ControlKey.RIGHT,
+            ControlEventType.PRESSED,
+            () => {
+                this.player = grid.moveCellRight(this.player);
+            },
+        );
     }
 
     /**
@@ -69,16 +85,30 @@ export default class MyGame extends Game {
         const { grid, state, score, sound, time } = this.modules;
 
         // 1. Move enemies down
-        this.enemies = this.enemies.map(enemy => ({ x: enemy.x, y: enemy.y + 1 })).filter(enemy => grid.isCoordinateValid({ x: enemy.x, y: enemy.y }));
+        this.enemies = this.enemies
+            .filter(enemy => enemy.coordinate.y !== grid.bottomRow)
+            .map(enemy => grid.moveCellDown(enemy));
 
         // 2. Spawn new enemy
         if (time.isTickEvery(this.spawnRate)) {
             const spawnX = Math.floor(Math.random() * grid.width);
-            this.enemies.push({ x: spawnX, y: grid.topRow });
+
+            const newEnemy = {
+                coordinate: {
+                    x: spawnX,
+                    y: grid.topRow,
+                },
+                color: this.enemyColor,
+                value: this.enemyValue,
+            };
+
+            this.enemies.push(newEnemy);
         }
 
         // 3. Check collisions
-        const collision = this.enemies.find(enemy => enemy.x === this.player.coordinate.x && enemy.y === this.player.coordinate.y);
+        const collision = this.enemies.find(enemy =>
+            grid.isAreaOccupied([enemy.coordinate]),
+        );
 
         if (collision) {
             sound.play(Sound.EXPLOSION);
@@ -95,21 +125,17 @@ export default class MyGame extends Game {
 
         // Draw Enemies
         // Piece is a class that represents a collection of cells in the grid
-        grid.stampPiece(
-            this.enemies.map(coordinate => {
-                return {
-                    coordinate,
-                    color: Color.RED,
-                    value: 2,
-                };
-            }),
-        );
+        grid.stampPiece(this.enemies);
 
         // 5. Increase score and difficulty
         score.increaseScore(1);
 
         // Increase speed every 50 points, limit to 10 levels
-        if (score.score > 0 && score.score % 50 === 0 && score.level < score.maxLevel) {
+        if (
+            score.score > 0 &&
+            score.score % 50 === 0 &&
+            score.level < score.maxLevel
+        ) {
             // Set tick interval to 200ms minus 15ms per level
             time.setTickInterval(this.initialTickInterval - 15 * score.level);
 
@@ -136,15 +162,16 @@ export default class MyGame extends Game {
     drawTitleScreen(): void {
         const { text } = this.modules;
 
+        text.setActiveText();
         text.setTextSize(FontSize.MEDIUM);
         text.setTextAlign(FontAlign.CENTER, FontVerticalAlign.CENTER);
-        text.textOnDisplay('DODGE BRICK', { x: 0.5, y: 0.3 });
+        text.writeOnDisplay('DODGE BRICK', { x: 0.5, y: 0.3 });
 
         text.setTextSize(FontSize.SMALL);
-        text.textOnDisplay('USE ARROWS TO MOVE', { x: 0.5, y: 0.5 });
+        text.writeOnDisplay('USE ARROWS TO MOVE', { x: 0.5, y: 0.5 });
 
         text.setTextSize(FontSize.MEDIUM);
-        text.textOnDisplay('PRESS START', { x: 0.5, y: 0.8 });
+        text.writePulsingTextOnDisplay('PRESS START', { x: 0.5, y: 0.8 });
     }
 
     /**
@@ -153,14 +180,15 @@ export default class MyGame extends Game {
     drawGameOverScreen(): void {
         const { text, score } = this.modules;
 
+        text.setActiveText();
         text.setTextAlign(FontAlign.CENTER, FontVerticalAlign.CENTER);
         text.setTextSize(FontSize.MEDIUM);
-        text.textOnDisplay('GAME OVER', { x: 0.5, y: 0.4 });
+        text.writeOnDisplay('GAME OVER', { x: 0.5, y: 0.4 });
 
         text.setTextSize(FontSize.SMALL);
-        text.textOnDisplay(`FINAL SCORE: ${score.score}`, { x: 0.5, y: 0.55 });
+        text.writeOnDisplay(`FINAL SCORE: ${score.score}`, { x: 0.5, y: 0.55 });
 
         text.setTextSize(FontSize.MEDIUM);
-        text.textOnDisplay('PRESS START', { x: 0.5, y: 0.8 });
+        text.writePulsingTextOnDisplay('PRESS START', { x: 0.5, y: 0.8 });
     }
 }
