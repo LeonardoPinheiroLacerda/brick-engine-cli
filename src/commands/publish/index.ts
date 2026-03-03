@@ -66,6 +66,15 @@ export async function publishCommand(options: { url?: string; key?: string }) {
     type: "input",
     name: "gameName",
     message: "Enter your game name:",
+    validate: (input: string) => {
+      if (!input || input.trim().length === 0) {
+        return "Game name is required.";
+      }
+      if (input.length > 10) {
+        return "Game name cannot exceed 10 characters.";
+      }
+      return true;
+    },
   });
 
   prompts.push({
