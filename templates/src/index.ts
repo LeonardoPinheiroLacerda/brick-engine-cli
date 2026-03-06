@@ -8,9 +8,18 @@ import {
     FontVerticalAlign,
     Color,
     Cell,
+    ScoreProperty,
 } from 'brick-engine-js';
 
+/**
+ * This is the main class of your game.
+ * It extends 'Game', which provides the lifecycle and access to the engine's modules.
+ */
 export default class MyGame extends Game {
+    /**
+     * Initial player state.
+     * 'Cell' represents a single square on the grid.
+     */
     private initialPlayerCell: Cell = {
         value: 1,
         color: Color.CYAN,
@@ -19,38 +28,47 @@ export default class MyGame extends Game {
             y: 17,
         },
     };
-    private initialTickInterval = 200;
 
+    // Initial difficulty settings
+    private initialSpawnEnemyInterval = 500;
+    private spawnEnemyInterval = 500;
+
+    private initialMoveEnemiesDownInterval = 100;
+    private moveEnemiesDownInterval = 100;
+
+    // Difficulty increase rates as level goes up
+    private increaseMoveEnemiesDownIntervalRate = 5;
+    private increaseSpawnEnemyIntervalRate = 25;
+
+    // Current game state
     private player: Cell = this.initialPlayerCell;
-
     private enemies: Cell[] = [];
     private enemyColor = Color.RED;
     private enemyValue = 2;
 
-    private spawnRate = 5; // Ticks between spawns
-
     /**
-     * Called once after the engine and its modules are fully initialized.
+     * setupGame() is called once when the engine is initialized.
+     * Use this to configure controls, data persistence, and initial events.
      */
     setupGame(): void {
-        const { control, session, grid, score, time } = this.modules;
+        // Destructure only the modules we need
+        const { control, session, grid, score, sound } = this.modules;
 
         // Reset game local state when starting/restarting.
         this.player = this.initialPlayerCell;
-        time.setTickInterval(this.initialTickInterval);
 
-        // Register how game data should be serialized and deserialized for the session
+        /**
+         * The 'session' module allows saving and loading game state.
+         * This is useful so the player doesn't lose progress on page refresh.
+         */
         session.register({
-            // Unique identifier for the session data
-            serialId: 'game-data',
-            // Recieves from LocalStorage and restore the game state
+            serialId: 'game-data', // Unique identifier for this data set
             deserialize: (data: string) => {
                 if (!data) return;
                 const { player, enemies } = JSON.parse(data);
                 this.player = player;
                 this.enemies = enemies;
             },
-            // Prepare data to be saved to LocalStorage
             serialize: () => {
                 return JSON.stringify({
                     player: this.player,
@@ -59,7 +77,12 @@ export default class MyGame extends Game {
             },
         });
 
-        // Move Left
+        /**
+         * Control Configuration.
+         * Subscribe functions to be executed when specific keys are pressed or held.
+         */
+
+        // Move Left (single press)
         control.subscribeForPlayingScreen(
             ControlKey.LEFT,
             ControlEventType.PRESSED,
@@ -68,7 +91,7 @@ export default class MyGame extends Game {
             },
         );
 
-        // Move Right
+        // Move Right (single press)
         control.subscribeForPlayingScreen(
             ControlKey.RIGHT,
             ControlEventType.PRESSED,
@@ -76,21 +99,91 @@ export default class MyGame extends Game {
                 this.player = grid.moveCellRight(this.player);
             },
         );
+
+        // Move Left (held down)
+        control.subscribeForPlayingScreen(
+            ControlKey.LEFT,
+            ControlEventType.HELD,
+            () => {
+                this.player = grid.moveCellLeft(this.player);
+            },
+        );
+
+        // Move Right (held down)
+        control.subscribeForPlayingScreen(
+            ControlKey.RIGHT,
+            ControlEventType.HELD,
+            () => {
+                this.player = grid.moveCellRight(this.player);
+            },
+        );
+
+        /**
+         * Listen for score changes to increase level and difficulty.
+         */
+        score.subscribe(ScoreProperty.SCORE, () => {
+            // Increase speed every 50 points
+            if (
+                score.score > 0 &&
+                score.score % 50 === 0 &&
+                score.level < score.maxLevel
+            ) {
+                // Adjust time intervals to make the game faster
+                this.moveEnemiesDownInterval =
+                    this.initialMoveEnemiesDownInterval -
+                    score.level * this.increaseMoveEnemiesDownIntervalRate;
+
+                this.spawnEnemyInterval =
+                    this.initialSpawnEnemyInterval -
+                    score.level * this.increaseSpawnEnemyIntervalRate;
+
+                // Increase level in the score module
+                score.increaseLevel(1);
+            }
+        });
+
+        // Play different sounds as the level increases
+        score.subscribe(ScoreProperty.LEVEL, () => {
+            if (score.level < 6) {
+                sound.play(Sound.SCORE_2);
+            } else {
+                sound.play(Sound.SCORE_3);
+            }
+        });
     }
 
     /**
-     * Logic update on every game "tick".
+     * update() is the main game logic loop.
+     * It runs every frame to process movement, collisions, and render to the grid.
      */
     update(): void {
         const { grid, state, score, sound, time } = this.modules;
 
-        // 1. Move enemies down
-        this.enemies = this.enemies
-            .filter(enemy => enemy.coordinate.y !== grid.bottomRow)
-            .map(enemy => grid.moveCellDown(enemy));
+        /**
+         * The 'time' module handles timing deterministically.
+         * time.every(ms, callback) runs the function every millisecond interval.
+         */
 
-        // 2. Spawn new enemy
-        if (time.isTickEvery(this.spawnRate)) {
+        // 1. Move enemies down
+        time.every(this.moveEnemiesDownInterval, () => {
+            this.enemies = this.enemies
+                .filter(enemy => enemy.coordinate.y !== grid.bottomRow) // Remove if they reach the bottom
+                .map(enemy => grid.moveCellDown(enemy)); // Move them down
+
+            // 2. Check collisions between enemies and the player (or other occupied areas)
+            const collision = this.enemies.find(enemy =>
+                grid.isAreaOccupied([enemy.coordinate]),
+            );
+
+            if (collision) {
+                sound.play(Sound.EXPLOSION);
+                state.triggerGameOver(); // End the game
+                return;
+            }
+        });
+
+        // 3. Spawn new enemies at random positions at the top
+        time.every(this.spawnEnemyInterval, () => {
             const spawnX = Math.floor(Math.random() * grid.width);
 
             const newEnemy = {
@@ -103,61 +196,34 @@ export default class MyGame extends Game {
             };
 
             this.enemies.push(newEnemy);
-        }
+        });
 
-        // 3. Check collisions
-        const collision = this.enemies.find(enemy =>
-            grid.isAreaOccupied([enemy.coordinate]),
-        );
-
-        if (collision) {
-            sound.play(Sound.EXPLOSION);
-            state.triggerGameOver();
-            return;
-        }
-
-        // 4. Update Grid
+        /**
+         * Grid Rendering.
+         * Clear the grid first, then 'stamp' objects onto it.
+         */
         grid.resetGrid();
 
         // Draw Player
-        // Cell is a class that represents a single cell in the grid
         grid.stampCell(this.player);
 
-        // Draw Enemies
-        // Piece is a class that represents a collection of cells in the grid
+        // Draw all enemies
+        // grid.stampPiece accepts a collection of cells
         grid.stampPiece(this.enemies);
 
-        // 5. Increase score and difficulty
-        score.increaseScore(1);
-
-        // Increase speed every 50 points, limit to 10 levels
-        if (
-            score.score > 0 &&
-            score.score % 50 === 0 &&
-            score.level < score.maxLevel
-        ) {
-            // Set tick interval to 200ms minus 15ms per level
-            time.setTickInterval(this.initialTickInterval - 15 * score.level);
-
-            // Increase level
-            score.increaseLevel(1);
-
-            // Play sound based on level
-            if (score.level < 6) {
-                sound.play(Sound.SCORE_2);
-            } else {
-                sound.play(Sound.SCORE_3);
-            }
-        }
+        // 4. Increase score automatically over time
+        time.every(this.moveEnemiesDownInterval, () => {
+            score.increaseScore(1);
+        });
     }
 
     /**
-     * Visual-only rendering (HUD elements).
+     * render() is used for visual-only elements that don't affect collision (e.g., HUD).
      */
     render(): void {}
 
     /**
-     * Title Screen Layout.
+     * Draw the title screen interface.
      */
     drawTitleScreen(): void {
         const { text } = this.modules;
@@ -175,7 +241,7 @@ export default class MyGame extends Game {
     }
 
     /**
-     * Game Over Screen Layout.
+     * Draw the Game Over screen interface.
      */
     drawGameOverScreen(): void {
         const { text, score } = this.modules;
